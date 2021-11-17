@@ -8,6 +8,8 @@ from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, seed_everything
 
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
 import utils
 
 
@@ -114,7 +116,7 @@ class DDPG(nn.Module):
         action = self.target_actor.forward(state).detach()
         return action.data.numpy()
     
-    def optimize(self):
+    def optimize(self, itr):
 
         s_1, a_1, r_1, s_2 = self.ram.sample(self.batch_size)
 
@@ -131,6 +133,7 @@ class DDPG(nn.Module):
         y_predicted = torch.squeeze(self.critic.forward(s_1, a_1))
 
         critic_loss = F.smooth_l1_loss(y_predicted, y_expected)
+        writer.add_scalar('Critic/loss', critic_loss, itr)
         
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
@@ -138,8 +141,9 @@ class DDPG(nn.Module):
 
         # Actor optimization
         pred_a_1 = self.actor.forward(s_1)
-        
         actor_loss = -1 * torch.sum(self.critic.forward(s_1, pred_a_1))
+
+        writer.add_scalar('Actor/loss', actor_loss, itr)
         
         self.actor_optimizer.zero_grad()
         actor_loss.backward()

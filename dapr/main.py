@@ -6,6 +6,10 @@ import gc
 from models import DDPG
 import memory
 
+# Tensorboard
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
 from constants import (
     MAX_EPISODES,
     MAX_STEPS,
@@ -33,9 +37,13 @@ def main():
     ram = memory.ReplayBuffer(MAX_BUFFER)
     trainer = DDPG(S_DIM, HIDDEN_DIMS, A_DIM, A_MAX, ram, lr=LEARNING_RATE, batch_size=BATCH_SIZE, gamma=GAMMA, tau=TAU)
 
+    itr = 0
     for _ep in range(MAX_EPISODES):
         observation = env.reset()
         print(f"EPISODE :- {_ep}")
+
+
+        cum_reward = 0
         for r in range(MAX_STEPS):
             env.render()
             state = np.float32(observation)
@@ -43,7 +51,8 @@ def main():
             action = trainer.get_exploration_action(state)
 
             new_observation, reward, done, info = env.step(action)
-
+            
+            cum_reward += reward
             if done:
                 new_state = None
             else:
@@ -54,9 +63,12 @@ def main():
             observation = new_observation
 
             # perform optimization
-            trainer.optimize()
+            trainer.optimize(itr)
+            itr += 1
             if done:
                 break
+        
+        writer.add_scalar('Reward/', cum_reward, _ep)
 
         # check memory consumption and clear memory
         gc.collect()
