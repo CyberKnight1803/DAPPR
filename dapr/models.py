@@ -10,6 +10,7 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
 
         self.net = nn.Sequential(
+            nn.Dropout(p=0.15),
             nn.Linear(state_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
@@ -29,6 +30,7 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
 
         self.net = nn.Sequential(
+            nn.Dropout(p=0.15),
             nn.Linear(state_dim + action_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
