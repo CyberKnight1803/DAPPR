@@ -9,8 +9,9 @@ from dapr.constants import DEVICE
 
 def main():
     seed_everything(42)
-    writer = SummaryWriter(log_dir=f"trial_runs/{int(time.time())}")
-    agent = DDPG(env_name="BipedalWalker-v3", device=DEVICE, writer=writer)
+    env_name = "Walker2d-v2"
+    writer = SummaryWriter(log_dir=f"trial_runs/{env_name}/{int(time.time())}")
+    agent = DDPG(env_name=env_name, device=DEVICE, writer=writer)
     agent.train()
 
 

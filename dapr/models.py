@@ -11,9 +11,11 @@ class Actor(nn.Module):
 
         self.net = nn.Sequential(
             nn.Dropout(p=0.15),
-            nn.Linear(state_dim, 256),
+            nn.Linear(state_dim, 256, bias=False),
+            # nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Linear(256, 256),
+            # nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Linear(256, action_dim),
             nn.Tanh(),
@@ -32,8 +34,10 @@ class Critic(nn.Module):
         self.net = nn.Sequential(
             nn.Dropout(p=0.15),
             nn.Linear(state_dim + action_dim, 256),
+            # nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Linear(256, 256),
+            # nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Linear(256, 1),
         )

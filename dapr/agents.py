@@ -87,7 +87,7 @@ class DDPG:
         self.total_steps: int = 0
 
     def predict(self, state):
-        state = torch.tensor(state, device=self.device).unsqueeze(0)
+        state = torch.tensor(state, dtype=torch.float, device=self.device).unsqueeze(0)
         action = self.actor(state)
         return action.cpu().data.numpy().flatten()
 
