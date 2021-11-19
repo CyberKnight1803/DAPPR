@@ -125,4 +125,5 @@ venv.bak/
 
 # seed project
 lightning_logs/
+trial_runs/
 .DS_Store

@@ -1,6 +1,8 @@
 from os import stat
+from typing import Callable, Iterator
 import numpy as np
 import torch
+from torch.utils.data import IterableDataset
 
 
 class ReplayBuffer:
@@ -35,3 +37,11 @@ class ReplayBuffer:
             torch.tensor(self.reward[idxs], device=device, dtype=torch.float),
             torch.tensor(self.not_done[idxs], device=device, dtype=torch.float),
         )
+
+
+class ExperienceBufferDataset(IterableDataset):
+    def __init__(self, generate_batch: Callable):
+        self.generate_batch = generate_batch
+
+    def __iter__(self) -> Iterator:
+        return self.generate_batch()
