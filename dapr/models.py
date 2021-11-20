@@ -10,14 +10,16 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
 
         self.net = nn.Sequential(
-            nn.Dropout(p=0.15),
-            nn.Linear(state_dim, 256, bias=False),
-            # nn.BatchNorm1d(256),
+            # nn.Dropout(p=0.15),
+            nn.Linear(state_dim, 400),
+            # nn.BatchNorm1d(400),
             nn.ReLU(),
-            nn.Linear(256, 256),
-            # nn.BatchNorm1d(256),
+            # nn.Dropout(p=0.15),
+            nn.Linear(400, 300),
+            # nn.BatchNorm1d(300),
             nn.ReLU(),
-            nn.Linear(256, action_dim),
+            nn.Linear(300, action_dim),
+            # nn.Dropout(p=0.15),
             nn.Tanh(),
         )
 
@@ -32,14 +34,16 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
 
         self.net = nn.Sequential(
-            nn.Dropout(p=0.15),
-            nn.Linear(state_dim + action_dim, 256),
-            # nn.BatchNorm1d(256),
+            # nn.Dropout(p=0.15),
+            nn.Linear(state_dim + action_dim, 400),
+            # nn.BatchNorm1d(400),
             nn.ReLU(),
-            nn.Linear(256, 256),
-            # nn.BatchNorm1d(256),
+            # nn.Dropout(p=0.15),
+            nn.Linear(400, 300),
+            # nn.BatchNorm1d(300),
             nn.ReLU(),
-            nn.Linear(256, 1),
+            # nn.Dropout(p=0.15),
+            nn.Linear(300, 1),
         )
 
     def forward(self, state, action) -> torch.Tensor:
