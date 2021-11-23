@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dapr.models import Actor, Critic
-from dapr.utils import ReplayBuffer
+from dapr.utils import ReplayBuffer, he_init_weights, xavier_init_weights
 
 
 class DDPG:
@@ -23,6 +23,7 @@ class DDPG:
         id: uuid.UUID = uuid.uuid4(),
         device: torch.device = torch.device("cpu"),
         writer: SummaryWriter = None,
+        initialization: str = "he",
         batch_size: int = 100,
         discount: float = 0.99,
         tau: float = 0.005,
@@ -40,6 +41,7 @@ class DDPG:
         super().__init__()
         # Hyperparams
         self.hparams = {}
+        self.hparams["init_weight"] = initialization
         self.hparams["batch_size"] = batch_size
         self.hparams["discount"] = discount
         self.hparams["tau"] = tau
@@ -75,7 +77,14 @@ class DDPG:
         self.buffer = ReplayBuffer(self.state_dim, self.action_dim, buffer_size)
 
         # Models
+
+        if initialization == "xavier" or initialization == "golort":
+            self.init_weights = xavier_init_weights
+        else:
+            self.init_weights = he_init_weights
+
         self.actor = Actor(self.state_dim, self.action_dim, self.max_action).to(device)
+        self.actor.apply(self.init_weights)
         self.actor_target = copy.deepcopy(self.actor)
 
         self.actor_opt = torch.optim.AdamW(
@@ -85,6 +94,7 @@ class DDPG:
         )
 
         self.critic = Critic(self.state_dim, self.action_dim).to(device)
+        self.critic.apply(self.init_weights)
         self.critic_target = copy.deepcopy(self.critic)
 
         self.critic_opt = torch.optim.AdamW(
@@ -273,6 +283,7 @@ class DDPG:
                 {
                     "hp_metric": avg_reward,
                 },
+                run_name=f"test",
             )
 
     def load(self, checkpoint_dir):

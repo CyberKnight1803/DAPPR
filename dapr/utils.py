@@ -1,6 +1,19 @@
 from os import stat
 import numpy as np
 import torch
+import torch.nn as nn
+
+
+def xavier_init_weights(m: nn.Module):
+    if isinstance(m, nn.Linear):
+        nn.init.kaiming_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+
+
+def he_init_weights(m: nn.Module):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_normal_(m.weight)
+        m.bias.data.fill_(0.01)
 
 
 class ReplayBuffer:

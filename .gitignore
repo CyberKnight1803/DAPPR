@@ -126,3 +126,4 @@ venv.bak/
 # seed project
 lightning_logs/
 .DS_Store
+checkpoints
