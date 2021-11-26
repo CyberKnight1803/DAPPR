@@ -34,11 +34,14 @@ class DDPG(GenericAgent):
         start_step: int = int(1e4),
         buffer_size: int = int(1e6),
         expl_noise: float = 0.1,
+        policy_noise: float = 0,
+        noise_clip: float = 0,
+        policy_freq: int = 1,
         eval_freq: int = int(5e3),
         max_steps: int = int(1e6),
         log_freq: int = 10,
     ):
-        super().__init__(
+        super(DDPG, self).__init__(
             env_name=env_name, env_seed=env_seed, id=id, device=device, writer=writer
         )
         # Hyperparams
@@ -54,6 +57,9 @@ class DDPG(GenericAgent):
         self.hparams["start_step"] = start_step
         self.hparams["expl_noise"] = expl_noise
         self.hparams["max_steps"] = max_steps
+        self.hparams["policy_noise"] = policy_noise
+        self.hparams["noise_clip"] = noise_clip
+        self.hparams["policy_freq"] = policy_freq
 
         self.log_freq = log_freq
         self.eval_freq = eval_freq
@@ -100,11 +106,18 @@ class DDPG(GenericAgent):
             self.hparams["batch_size"], device=self.device
         )
 
-        # Get the target Q Values
-        target_Q = self.critic_target(next_state, self.actor_target(next_state))
-        target_Q = (
-            reward + (not_done * self.hparams["discount"] * target_Q).detach()
-        )  # Why detatch?
+        with torch.no_grad():
+            noise = (torch.randn_like(action) * self.hparams["policy_noise"]).clamp(
+                -self.hparams["noise_clip"], self.hparams["noise_clip"]
+            )
+
+            next_action = (self.actor_target(next_state) + noise).clamp(
+                -self.max_action, self.max_action
+            )
+
+            # Get the target Q Values
+            target_Q = self.critic_target(next_state, next_action)
+            target_Q = reward + not_done * self.hparams["discount"] * target_Q
 
         # Get the current Q Values
         current_Q = self.critic(state, action)
@@ -117,33 +130,46 @@ class DDPG(GenericAgent):
         critic_loss.backward()
         self.critic_opt.step()
 
-        # Compute the actor loss
-        actor_loss = -1 * torch.mean(self.critic(state, self.actor(state)))
-
-        # Update the Actor by one-step gradient descent (not ascent as in paper, since we multiplied by -1)
-        self.actor_opt.zero_grad()
-        actor_loss.backward()
-        self.actor_opt.step()
-
-        # Update the frozen target models
-        for param, tgt_param in zip(
-            self.critic.parameters(), self.critic_target.parameters()
-        ):
-            tgt_param.data.copy_(
-                self.hparams["tau"] * param.data
-                + (1 - self.hparams["tau"]) * tgt_param.data
+        if self.total_steps % self.log_freq == 0:
+            self.writer.add_scalar(
+                "loss/critc", critic_loss, global_step=self.total_steps
             )
 
-        for param, tgt_param in zip(
-            self.actor.parameters(), self.actor_target.parameters()
-        ):
-            tgt_param.data.copy_(
-                self.hparams["tau"] * param.data
-                + (1 - self.hparams["tau"]) * tgt_param.data
-            )
+        if self.total_steps % self.hparams["policy_freq"] == 0:
 
-        # self.actor.eval()
-        return actor_loss, critic_loss
+            # print("Updating Actor Loss")
+
+            # Compute the actor loss
+            actor_loss = -torch.mean(self.critic(state, self.actor(state)))
+
+            if self.total_steps % max(self.log_freq, self.hparams["policy_freq"]) == 0:
+                self.writer.add_scalar(
+                    "loss/actor", actor_loss, global_step=self.total_steps
+                )
+
+            # Update the Actor by one-step gradient descent (not ascent as in paper, since we multiplied by -1)
+            self.actor_opt.zero_grad()
+            actor_loss.backward()
+            self.actor_opt.step()
+
+            # Update the frozen target models
+            for param, tgt_param in zip(
+                self.critic.parameters(), self.critic_target.parameters()
+            ):
+                tgt_param.data.copy_(
+                    self.hparams["tau"] * param.data
+                    + (1 - self.hparams["tau"]) * tgt_param.data
+                )
+
+            for param, tgt_param in zip(
+                self.actor.parameters(), self.actor_target.parameters()
+            ):
+                tgt_param.data.copy_(
+                    self.hparams["tau"] * param.data
+                    + (1 - self.hparams["tau"]) * tgt_param.data
+                )
+
+            # self.actor.eval()
 
     def _warm_start(self):
         state = self.env.reset()
@@ -185,15 +211,7 @@ class DDPG(GenericAgent):
             state = next_state
             episode_reward += reward
 
-            actor_loss, critic_loss = self.optimize()
-
-            if (t + 1) % self.log_freq == 0:
-                self.writer.add_scalar(
-                    "loss/actor", actor_loss, global_step=self.total_steps
-                )
-                self.writer.add_scalar(
-                    "loss/critc", critic_loss, global_step=self.total_steps
-                )
+            self.optimize()
 
             if done:
                 if (t + 1) % self.log_freq == 0:

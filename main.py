@@ -10,18 +10,22 @@ from dapr.constants import DEVICE
 
 def main():
     seed_everything(42)
-    env_name = "BipedalWalker-v3"
+    env_name = "HalfCheetah-v2"
+    model = "DAPR"
     id = uuid.uuid4()
 
-    with SummaryWriter(log_dir=f"trial_runs/{env_name}/DDPG-{id}") as writer:
+    with SummaryWriter(log_dir=f"trial_runs/{env_name}/{model}-{id}") as writer:
         print(f"Logging in {writer.get_logdir()}")
         agent = DDPG(
             env_name=env_name,
             id=id,
             device=DEVICE,
             writer=writer,
-            critic_weight_decay=0,
-            actor_weight_decay=0,
+            critic_weight_decay=5e-4,
+            actor_weight_decay=5e-4,
+            policy_noise=0.2,
+            noise_clip=0.5,
+            policy_freq=2,
         )
         agent.train()
         agent.test(100)
