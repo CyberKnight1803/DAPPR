@@ -1,17 +1,16 @@
-import time
 import uuid
 
 from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning import seed_everything
 
 
-from dapr.agents import DDPG
+from dapr.agents.ddpg import DDPG
 from dapr.constants import DEVICE
 
 
 def main():
     seed_everything(42)
-    env_name = "Walker2d-v2"
+    env_name = "BipedalWalker-v3"
     id = uuid.uuid4()
 
     with SummaryWriter(log_dir=f"trial_runs/{env_name}/DDPG-{id}") as writer:
