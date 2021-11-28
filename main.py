@@ -10,7 +10,7 @@ from dapr.constants import DEVICE
 
 def main():
     seed_everything(42)
-    env_name = "HalfCheetah-v2"
+    env_name = "Ant-v2"
     model = "DAPR"
     id = uuid.uuid4()
 
@@ -21,8 +21,10 @@ def main():
             id=id,
             device=DEVICE,
             writer=writer,
-            critic_weight_decay=5e-4,
-            actor_weight_decay=5e-4,
+            actor_lr=5e-4,
+            critic_lr=5e-4,
+            critic_weight_decay=0,
+            actor_weight_decay=0,
             policy_noise=0.2,
             noise_clip=0.5,
             policy_freq=2,
